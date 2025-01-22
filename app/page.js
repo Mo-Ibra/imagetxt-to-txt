@@ -1,101 +1,138 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import jsPDF from "jspdf";
+import { useState } from "react";
+import Tesseract from "tesseract.js";
+
+export default function OCRConverter() {
+  const [image, setImage] = useState(null);
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [language, setLanguage] = useState("eng");
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    console.log(URL.createObjectURL(file));
+
+    if (file) {
+      setImage(URL.createObjectURL(file));
+    }
+  };
+
+  const handleExtractText = async () => {
+    if (!image) return;
+    setLoading(true);
+
+    try {
+      const result = await Tesseract.recognize(image, language, {
+        logger: (m) => console.log(m),
+      });
+
+      setText(result.data.text);
+    } catch (err) {
+      console.error("Error extracting text:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadText = () => {
+    const blob = new Blob([text], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "extracted-text.txt";
+    link.click();
+  };
+
+  const handleDownloadPDF = () => {
+    const pdf = new jsPDF();
+    pdf.text(text, 10, 10);
+    pdf.save("extracted-text.pdf");
+  }
+
+  const handleDownloadMarkdown = () => {
+    const blob = new Blob([text], { type: "text/markdown" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "extracted-text.md";
+    link.click();
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <div className="p-6 max-w-screen-xl mx-auto">
+      <div className="mt-5">
+        <h1 className="text-4xl text-orange-600 hover:text-orange-700 cursor-pointer font-bold mb-4">
+          Image to Text Converter
+        </h1>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="mb-4 rounded-lg"
         />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* Language Selection */}
+      <div>
+        <label className="block mb-2">Select Language:</label>
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          className="mb-4 p-2 px-8 border rounded bg-slate-900"
+        >
+          <option value="eng">English</option>
+          <option value="ara">Arabic</option>
+          <option value="spa">Spanish</option>
+          <option value="fra">French</option>
+          <option value="deu">German</option>
+        </select>
+      </div>
+
+      {image && (
+        <div className="my-5">
+          <img src={image} alt="Uploaded" className="mb-4 max-w-full" />
+          <button
+            onClick={handleExtractText}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {loading ? "Extracting..." : "Extract Text"}
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+
+      {text && (
+        <div className="my-5">
+          <h2 className="font-bold mb-5">Extracted Text:</h2>
+          <pre
+            className=" p-4 rounded overflow-scroll w-full"
+            style={{ backgroundColor: "#2a2a2a" }}
+          >
+            {text}
+          </pre>
+
+          {/* Export Buttons */}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={handleDownloadText}
+              className="bg-green-500 text-white px-4 py-2 rounded"
+            >
+              Download as .txt
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="bg-red-500 text-white px-4 py-2 rounded"
+            >
+              Download as PDF
+            </button>
+            <button
+              onClick={handleDownloadMarkdown}
+              className="bg-gray-800 text-white px-4 py-2 rounded"
+            >
+              Download as Markdown
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
